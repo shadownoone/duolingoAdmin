@@ -1,0 +1,8 @@
+html {
+  overflow-y: scroll; /* Luôn hiển thị thanh cuộn dọc để tránh giao diện bị lệch */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
