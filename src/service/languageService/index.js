@@ -71,3 +71,9 @@ export const uploadMultipleImages = async (images) => {
     throw error; // Ném lỗi ra để xử lý bên ngoài nếu cần
   }
 };
+
+export const getCourseByLanguage = async (languageId) => {
+  return await axiosClients.get(`/courses/lan/${languageId}`).then((res) => {
+    return res.data;
+  });
+};

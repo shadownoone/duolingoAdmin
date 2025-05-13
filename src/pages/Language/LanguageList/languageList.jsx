@@ -14,13 +14,14 @@ import {
   TextField,
   Grid
 } from '@mui/material';
-import { BookOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
-import { getLanguage, deleteLanguage, updateLanguage } from '@/service/languageService';
-
+import { BookOutlined, DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
+import { getLanguage, deleteLanguage, updateLanguage, getCourseByLanguage } from '@/service/languageService';
+import { useNavigate } from 'react-router-dom';
 import ReactCountryFlag from 'react-country-flag';
 import UpdateLanguageForm from '../UpdateLanguageForm/UpdateLanguageForm';
 
-export default function MangaList() {
+export default function LanguageList() {
+  const navigate = useNavigate();
   const [listLanguage, setListLanguage] = useState([]);
   const [filteredManga, setFilteredManga] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +34,6 @@ export default function MangaList() {
     const fetchManga = async () => {
       const data = await getLanguage();
       setListLanguage(data.data.data);
-      console.log('🚀 ~ fetchManga ~ data.data.data:', data.data.data);
 
       setFilteredManga(data.data.data);
     };
@@ -68,27 +68,8 @@ export default function MangaList() {
     setSelectedManga(null);
   };
 
-  const handleSaveChanges = async (updatedLanguage) => {
-    try {
-      const response = await updateLanguage(updatedLanguage.language_id, updatedLanguage);
-      const updatedData = response.data?.data || response.data;
-
-      if (!updatedData || !updatedData.language_id) {
-        console.error('Dữ liệu cập nhật không hợp lệ:', updatedData);
-        return;
-      }
-
-      alert('Manga updated successfully!');
-
-      const updatedListManga = listLanguage.map((language) => (language.language_id === updatedData.language_id ? updatedData : language));
-
-      setListLanguage(updatedListManga);
-      setFilteredManga(updatedListManga);
-      setSelectedManga(updatedData);
-      handleClose();
-    } catch (error) {
-      console.error('Error updating manga:', error);
-    }
+  const handleView = async (language_id) => {
+    navigate(`/course/${language_id}`);
   };
 
   const handleDelete = async (language_id) => {
@@ -96,7 +77,6 @@ export default function MangaList() {
     if (confirmDelete) {
       try {
         await deleteLanguage(language_id);
-        alert('Language đã được xóa thành công!');
 
         const updatedListManga = listLanguage.filter((language) => language.language_id !== language_id);
         setListLanguage(updatedListManga);
@@ -155,6 +135,11 @@ export default function MangaList() {
                   <TableCell>{language.language_name}</TableCell>
 
                   <TableCell>
+                    <Tooltip title="View">
+                      <IconButton onClick={() => handleView(language.language_id)}>
+                        <EyeOutlined fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Edit">
                       <IconButton onClick={() => handleEdit(language)}>
                         <EditOutlined />

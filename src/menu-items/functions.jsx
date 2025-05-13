@@ -18,7 +18,7 @@ const functions = {
       id: 'language',
       title: 'Language',
       type: 'item',
-      url: '/language',
+      url: '/languages',
       icon: icons.LoginOutlined,
       target: false,
       breadcrumbs: true
@@ -33,19 +33,19 @@ const functions = {
       breadcrumbs: true
     },
     {
-      id: 'user',
-      title: 'User',
+      id: 'lesson',
+      title: 'Lesson',
       type: 'item',
-      url: '/user',
+      url: '/lesson',
       icon: icons.ProfileOutlined,
       target: false,
       breadcrumbs: true
     },
     {
-      id: 'lesson',
-      title: 'Lesson',
+      id: 'user',
+      title: 'User',
       type: 'item',
-      url: '/lesson',
+      url: '/user',
       icon: icons.ProfileOutlined,
       target: false,
       breadcrumbs: true

@@ -10,10 +10,10 @@ const Shadow = Loadable(lazy(() => import('@/pages/component-overview/shadows'))
 const DashboardDefault = Loadable(lazy(() => import('@/pages/dashboard/index')));
 
 const Language = Loadable(lazy(() => import('@/pages/Language/index')));
-const Genre = Loadable(lazy(() => import('@/pages/Genre/genre')));
+const Course = Loadable(lazy(() => import('@/pages/Course/index')));
 const Profile = Loadable(lazy(() => import('@/pages/Profile/profile')));
 const User = Loadable(lazy(() => import('@/pages/User/user')));
-const Chapter = Loadable(lazy(() => import('@/pages/Chapter/chapter')));
+const Lesson = Loadable(lazy(() => import('@/pages/Lesson/index')));
 
 // render - sample page
 const SamplePage = Loadable(lazy(() => import('@/pages/extra-pages/sample-page')));
@@ -56,12 +56,18 @@ const MainRoutes = {
       element: <Typography />
     },
     {
-      path: 'language',
+      path: 'languages',
       element: <Language />
     },
     {
-      path: 'genre',
-      element: <Genre />
+      path: 'course',
+      element: <Course />,
+      children: [
+        {
+          path: ':languageId',
+          element: <Course />
+        }
+      ]
     },
     {
       path: 'profile',
@@ -72,8 +78,8 @@ const MainRoutes = {
       element: <User />
     },
     {
-      path: 'chapter',
-      element: <Chapter />
+      path: 'lesson/:courseId',
+      element: <Lesson />
     }
   ]
 };

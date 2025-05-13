@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Container } from '@mui/material';
 import { PlusOutlined } from '@ant-design/icons';
-import MangaList from './MangaList/MangaList';
+import LanguageList from './LanguageList/languageList';
 import AddLanguageForm from './AddLanguageForm/AddLanguageForm';
 
 export default function MangaAdmin() {
@@ -31,7 +31,7 @@ export default function MangaAdmin() {
       </Button>
 
       {/* Hiển thị danh sách Manga */}
-      <MangaList />
+      <LanguageList />
 
       {/* Form thêm Manga */}
       <AddLanguageForm open={open} handleClose={handleClose} onLanguageAdded={handleLanguageAdded} />
