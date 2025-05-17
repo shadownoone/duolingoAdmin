@@ -6,12 +6,6 @@ export const getLanguage = async () => {
   });
 };
 
-export const getMangaBySlug = async (slug) => {
-  return await axiosClients.get('/mangas/' + slug).then((res) => {
-    return res.data;
-  });
-};
-
 export const createLanguage = async (languageData) => {
   try {
     const response = await axiosClients.post('/languages/create', languageData);
@@ -28,26 +22,8 @@ export const updateLanguage = async (id, formData) => {
   });
 };
 
-export const getMangaTop = async () => {
-  return await axiosClients.get('mangas/top').then((res) => {
-    return res.data;
-  });
-};
-
-export const getVipUsersWithPayments = async () => {
-  return await axiosClients.get('mangas/vip').then((res) => {
-    return res.data;
-  });
-};
-
 export const deleteLanguage = async (id) => {
   return await axiosClients.delete(`/languages/${id}`).then((res) => {
-    return res.data;
-  });
-};
-
-export const getStatistical = async () => {
-  return await axiosClients.get('/mangas/statistical').then((res) => {
     return res.data;
   });
 };

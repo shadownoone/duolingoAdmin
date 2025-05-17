@@ -41,6 +41,27 @@ const functions = {
       target: false,
       breadcrumbs: true
     },
+
+    {
+      id: 'exercise',
+      title: 'Exercise',
+      type: 'item',
+      url: '/exercise',
+      icon: icons.ProfileOutlined,
+      target: false,
+      breadcrumbs: true
+    },
+
+    {
+      id: 'exerciseType',
+      title: 'ExerciseType',
+      type: 'item',
+      url: '/exerciseType',
+      icon: icons.ProfileOutlined,
+      target: false,
+      breadcrumbs: true
+    },
+
     {
       id: 'user',
       title: 'User',

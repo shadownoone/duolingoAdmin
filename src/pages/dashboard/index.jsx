@@ -16,8 +16,8 @@ import Box from '@mui/material/Box';
 // project import
 import MainCard from '@/components/MainCard';
 import AnalyticEcommerce from '@/components/cards/statistics/AnalyticEcommerce';
-import MonthlyBarChart from './TopViews';
-import ReportAreaChart from './TopRichs';
+// import MonthlyBarChart from './TopViews';
+// import ReportAreaChart from './TopRichs';
 import UniqueVisitorCard from './UniqueVisitorCard';
 import SaleReportCard from './SaleReportCard';
 import OrdersTable from './OrdersTable';
@@ -32,7 +32,7 @@ import avatar3 from '@/assets/images/users/avatar-3.png';
 import avatar4 from '@/assets/images/users/avatar-4.png';
 import { useEffect, useState } from 'react';
 
-import { getStatistical } from '@/service/languageService/index';
+// import { getStatistical } from '@/service/languageService/index';
 import { totalUser } from '@/service/userService';
 import { getPayments } from '@/service/paymentService';
 
@@ -79,34 +79,34 @@ export default function DashboardDefault() {
     extra: 0
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getStatistical(); // Gọi API
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const data = await getStatistical(); // Gọi API
 
-        console.log('Raw API Data:', data); // Log dữ liệu trả về từ API
+  //       console.log('Raw API Data:', data); // Log dữ liệu trả về từ API
 
-        // Ghi log để kiểm tra từng giá trị cụ thể
-        console.log('Total Views:', data.data.totalViews);
-        console.log('Total Mangas:', data.data.totalMangas);
+  //       // Ghi log để kiểm tra từng giá trị cụ thể
+  //       console.log('Total Views:', data.data.totalViews);
+  //       console.log('Total Mangas:', data.data.totalMangas);
 
-        totalViews({
-          totalViews: data.data.totalViews || 0,
-          percentage: 59.3, // Giá trị ví dụ, bạn có thể tính toán từ backend
-          extra: 35000 // Giá trị ví dụ, bạn có thể lấy từ backend nếu có
-        });
+  //       totalViews({
+  //         totalViews: data.data.totalViews || 0,
+  //         percentage: 59.3, // Giá trị ví dụ, bạn có thể tính toán từ backend
+  //         extra: 35000 // Giá trị ví dụ, bạn có thể lấy từ backend nếu có
+  //       });
 
-        totalMangas({
-          totalMangas: data.data.totalMangas || 0,
-          percentage: 60, // Giá trị ví dụ, bạn có thể tính toán từ backend
-          extra: 35000 // Giá trị ví dụ, bạn có thể lấy từ backend nếu có
-        });
-      } catch (error) {
-        console.error('Error fetching statistics:', error);
-      }
-    };
-    fetchData();
-  }, []);
+  //       totalMangas({
+  //         totalMangas: data.data.totalMangas || 0,
+  //         percentage: 60, // Giá trị ví dụ, bạn có thể tính toán từ backend
+  //         extra: 35000 // Giá trị ví dụ, bạn có thể lấy từ backend nếu có
+  //       });
+  //     } catch (error) {
+  //       console.error('Error fetching statistics:', error);
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
 
   useEffect(() => {
     const fetchTotalUsers = async () => {
@@ -192,7 +192,7 @@ export default function DashboardDefault() {
         </Grid>
         <MainCard sx={{ mt: 2 }} content={false}>
           <Box sx={{ p: 3, pb: 0 }}></Box>
-          <MonthlyBarChart />
+          {/* <MonthlyBarChart /> */}
         </MainCard>
       </Grid>
 
@@ -216,7 +216,7 @@ export default function DashboardDefault() {
           <Grid item />
         </Grid>
         <MainCard sx={{ mt: 2 }} content={false}>
-          <ReportAreaChart />
+          {/* <ReportAreaChart /> */}
         </MainCard>
       </Grid>
 

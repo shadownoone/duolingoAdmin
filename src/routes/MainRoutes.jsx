@@ -3,6 +3,7 @@ import { lazy } from 'react';
 // project import
 import Loadable from '@/components/Loadable';
 import Dashboard from '@/layout/Dashboard';
+import ExerciseType from '@/pages/ExerciseType';
 
 const Color = Loadable(lazy(() => import('@/pages/component-overview/color')));
 const Typography = Loadable(lazy(() => import('@/pages/component-overview/typography')));
@@ -14,6 +15,7 @@ const Course = Loadable(lazy(() => import('@/pages/Course/index')));
 const Profile = Loadable(lazy(() => import('@/pages/Profile/profile')));
 const User = Loadable(lazy(() => import('@/pages/User/user')));
 const Lesson = Loadable(lazy(() => import('@/pages/Lesson/index')));
+const Exercise = Loadable(lazy(() => import('@/pages/Exercise/index')));
 
 // render - sample page
 const SamplePage = Loadable(lazy(() => import('@/pages/extra-pages/sample-page')));
@@ -80,6 +82,14 @@ const MainRoutes = {
     {
       path: 'lesson/:courseId',
       element: <Lesson />
+    },
+    {
+      path: 'exercise/:lessonId',
+      element: <Exercise />
+    },
+    {
+      path: 'exercisetype',
+      element: <ExerciseType />
     }
   ]
 };

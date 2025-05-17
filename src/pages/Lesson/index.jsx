@@ -76,7 +76,7 @@ export default function Lesson() {
 
   const handleView = (lesson_id) => {
     console.log('lesson_id', lesson_id);
-    // navigate(`/lesson/${lesson_id}`);
+    navigate(`/exercise/${lesson_id}`);
   };
 
   const handleDeleteLesson = async (lessonId) => {
