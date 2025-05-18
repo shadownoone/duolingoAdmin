@@ -17,18 +17,25 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Button
+  Button,
+  Typography,
+  Checkbox,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
-import { EyeOutlined, DeleteOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons';
+import { EyeOutlined, DeleteOutlined, PlusOutlined, EditOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getExerciseByLesson } from '@/service/exerciseService';
+import { createExercise, deleteExercise, getExerciseByLesson, getExerciseType, updateExercise } from '@/service/exerciseService';
 
 export default function Exercise() {
-  const navigate = useNavigate();
   const { lessonId } = useParams();
 
   const [exercises, setExercises] = useState([]);
+  const [exerciseTypes, setExerciseTypes] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,21 +48,33 @@ export default function Exercise() {
   const [exerciseType, setExerciseType] = useState('');
   const [exerciseIdToEdit, setExerciseIdToEdit] = useState(null);
 
+  const [questionContent, setQuestionContent] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [hints, setHints] = useState('');
+  const [options, setOptions] = useState([{ option_text: '', is_correct: false }]);
+
+  const fetchExercises = async () => {
+    setLoading(true);
+    try {
+      const res = await getExerciseByLesson(lessonId);
+      setExercises(res.data.exercises || []);
+      console.log(res.data.exercises);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchExe = async () => {
-      try {
-        const res = await getExerciseByLesson(lessonId);
-        setExercises(res.data.exercises || []);
-        console.log(res.data.exercises);
-      } catch (err) {
-        console.error('Error fetching lessons:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchExe();
-    setLoading(false);
+    fetchExercises();
   }, [lessonId]);
+
+  useEffect(() => {
+    getExerciseType()
+      .then((res) => setExerciseTypes(res.data?.data || []))
+      .catch(() => setExerciseTypes([]));
+  }, []);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -78,9 +97,16 @@ export default function Exercise() {
     // navigate(`/exercise/${exerciseId}`);
   };
 
-  const handleDeleteExercise = (exerciseId) => {
-    // TODO: call delete API and update state
-    // deleteExercise(exerciseId).then(() => setExercises(prev => prev.filter(e => e.id !== exerciseId)));
+  const handleDeleteExercise = async (exerciseId) => {
+    if (!window.confirm('Are you sure you want to delete this exercise?')) return;
+
+    try {
+      await deleteExercise(exerciseId);
+
+      setExercises((prev) => prev.filter((ex) => ex.exercise_id !== exerciseId));
+    } catch (err) {
+      console.error('Failed to delete exercise', err.response?.data || err);
+    }
   };
 
   const handleAddExerciseOpen = () => {
@@ -89,16 +115,25 @@ export default function Exercise() {
 
   const handleAddExerciseClose = () => {
     setOpenAddDialog(false);
-    setExerciseName('');
-    setExerciseDescription('');
+    // reset form
     setExerciseType('');
+    setQuestionContent('');
+    setAnswer('');
+    setHints('');
+    setOptions([{ option_text: '', is_correct: false }]);
   };
-
   const handleEditExerciseOpen = (exercise) => {
-    setExerciseIdToEdit(exercise.id);
-    setExerciseName(exercise.name);
-    setExerciseDescription(exercise.description);
-    setExerciseType(exercise.type);
+    setExerciseIdToEdit(exercise.exercise_id);
+    setExerciseType(exercise.exercise_type_id);
+    setQuestionContent(exercise.question_content);
+    setAnswer(exercise.answer);
+    setHints(exercise.hints || '');
+    setOptions(
+      exercise.options.map((o) => ({
+        option_text: o.option_text,
+        is_correct: o.is_correct
+      }))
+    );
     setOpenEditDialog(true);
   };
 
@@ -109,22 +144,57 @@ export default function Exercise() {
     setExerciseType('');
   };
 
-  const handleAddExercise = () => {
-    if (!exerciseName || !exerciseDescription || !exerciseType) return;
-    const newExercise = { name: exerciseName, description: exerciseDescription, type: exerciseType, courseId };
-    // TODO: call createExercise API
-    // createExercise(newExercise).then(res => setExercises(prev => [...prev, res.data]));
-    handleAddExerciseClose();
+  const handleAddExercise = async () => {
+    try {
+      const payload = {
+        lesson_id: Number(lessonId),
+        exercise_type_id: Number(exerciseType),
+        question_content: questionContent,
+        answer,
+        hints,
+        options
+      };
+      await createExercise(payload);
+      await fetchExercises();
+      handleAddExerciseClose();
+    } catch (err) {
+      console.error('Failed to create exercise', err);
+    }
   };
 
-  const handleUpdateExercise = () => {
-    if (!exerciseName || !exerciseDescription || !exerciseType) return;
-    const updated = { name: exerciseName, description: exerciseDescription, type: exerciseType };
-    // TODO: call update API
-    // updateExercise(exerciseIdToEdit, updated).then(res => {
-    //   setExercises(prev => prev.map(e => (e.id === exerciseIdToEdit ? res.data : e)));
-    // });
-    handleEditExerciseClose();
+  const handleUpdateExercise = async () => {
+    try {
+      const payload = {
+        lesson_id: Number(lessonId),
+        exercise_type_id: Number(exerciseType),
+        question_content: questionContent,
+        answer,
+        hints,
+        options
+      };
+      const res = await updateExercise(exerciseIdToEdit, payload);
+      const updated = res.data;
+
+      // Update ngay trong local state
+      setExercises((prev) => prev.map((ex) => (ex.exercise_id === exerciseIdToEdit ? updated : ex)));
+      handleEditExerciseClose();
+    } catch (err) {
+      console.error('Failed to update exercise', err.response?.data || err);
+    }
+  };
+
+  const handleOptionChange = (idx, field, value) => {
+    const newOpts = [...options];
+    newOpts[idx][field] = value;
+    setOptions(newOpts);
+  };
+
+  const handleAddOption = () => {
+    setOptions((o) => [...o, { option_text: '', is_correct: false }]);
+  };
+
+  const handleRemoveOption = (idx) => {
+    setOptions((o) => o.filter((_, i) => i !== idx));
   };
 
   return (
@@ -173,23 +243,18 @@ export default function Exercise() {
                 </TableRow>
               ) : exercises.length > 0 ? (
                 exercises.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((exercise, index) => (
-                  <TableRow key={exercise.id}>
+                  <TableRow key={exercise.exercise_id}>
                     <TableCell>{page * rowsPerPage + index + 1}</TableCell>
                     <TableCell>{exercise.question_content}</TableCell>
                     <TableCell>{exercise.exerciseType?.exercise_type_name || '-'}</TableCell>
                     <TableCell>
-                      <Tooltip title="View">
-                        <IconButton onClick={() => handleView(exercise.id)}>
-                          <EyeOutlined />
-                        </IconButton>
-                      </Tooltip>
                       <Tooltip title="Edit">
                         <IconButton onClick={() => handleEditExerciseOpen(exercise)}>
                           <EditOutlined />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton color="error" onClick={() => handleDeleteExercise(exercise.id)}>
+                        <IconButton color="error" onClick={() => handleDeleteExercise(exercise.exercise_id)}>
                           <DeleteOutlined />
                         </IconButton>
                       </Tooltip>
@@ -222,26 +287,72 @@ export default function Exercise() {
       <Dialog open={openAddDialog} onClose={handleAddExerciseClose} fullWidth maxWidth="md">
         <DialogTitle>Add New Exercise</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Exercise Name"
-            value={exerciseName}
-            onChange={(e) => setExerciseName(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Description"
-            value={exerciseDescription}
-            onChange={(e) => setExerciseDescription(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField fullWidth label="Type" value={exerciseType} onChange={(e) => setExerciseType(e.target.value)} sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel id="select-type-label">Exercise Type</InputLabel>
+                <Select
+                  labelId="select-type-label"
+                  value={exerciseType}
+                  label="Exercise Type"
+                  onChange={(e) => setExerciseType(e.target.value)}
+                >
+                  {exerciseTypes.map((type) => (
+                    <MenuItem key={type.exercise_type_id} value={type.exercise_type_id}>
+                      {type.exercise_type_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField fullWidth label="Question" value={questionContent} onChange={(e) => setQuestionContent(e.target.value)} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField fullWidth label="Answer" value={answer} onChange={(e) => setAnswer(e.target.value)} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField fullWidth label="Hints" value={hints} onChange={(e) => setHints(e.target.value)} />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="subtitle1">Options</Typography>
+            </Grid>
+            {options.map((opt, idx) => (
+              <React.Fragment key={idx}>
+                <Grid item xs={8}>
+                  <TextField
+                    fullWidth
+                    label={`Option ${idx + 1}`}
+                    value={opt.option_text}
+                    onChange={(e) => handleOptionChange(idx, 'option_text', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Checkbox checked={opt.is_correct} onChange={(e) => handleOptionChange(idx, 'is_correct', e.target.checked)} />
+                  <Typography>Correct</Typography>
+                </Grid>
+                <Grid item xs={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                  {options.length > 1 && (
+                    <IconButton onClick={() => handleRemoveOption(idx)}>
+                      <MinusCircleOutlined />
+                    </IconButton>
+                  )}
+                </Grid>
+              </React.Fragment>
+            ))}
+
+            <Grid item xs={12}>
+              <Button startIcon={<PlusOutlined />} onClick={handleAddOption}>
+                Add Option
+              </Button>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleAddExerciseClose}>Cancel</Button>
           <Button variant="contained" onClick={handleAddExercise}>
-            Add Exercise
+            Create
           </Button>
         </DialogActions>
       </Dialog>
@@ -250,26 +361,75 @@ export default function Exercise() {
       <Dialog open={openEditDialog} onClose={handleEditExerciseClose} fullWidth maxWidth="md">
         <DialogTitle>Edit Exercise</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Exercise Name"
-            value={exerciseName}
-            onChange={(e) => setExerciseName(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Description"
-            value={exerciseDescription}
-            onChange={(e) => setExerciseDescription(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField fullWidth label="Type" value={exerciseType} onChange={(e) => setExerciseType(e.target.value)} sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            {/* Dropdown chọn Type */}
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel id="edit-type-label">Exercise Type</InputLabel>
+                <Select
+                  labelId="edit-type-label"
+                  value={exerciseType}
+                  label="Exercise Type"
+                  onChange={(e) => setExerciseType(e.target.value)}
+                >
+                  {exerciseTypes.map((type) => (
+                    <MenuItem key={type.exercise_type_id} value={type.exercise_type_id}>
+                      {type.exercise_type_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            {/* Question */}
+            <Grid item xs={6}>
+              <TextField fullWidth label="Question" value={questionContent} onChange={(e) => setQuestionContent(e.target.value)} />
+            </Grid>
+            {/* Answer */}
+            <Grid item xs={6}>
+              <TextField fullWidth label="Answer" value={answer} onChange={(e) => setAnswer(e.target.value)} />
+            </Grid>
+            {/* Hints */}
+            <Grid item xs={6}>
+              <TextField fullWidth label="Hints" value={hints} onChange={(e) => setHints(e.target.value)} />
+            </Grid>
+            {/* Options */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1">Options</Typography>
+            </Grid>
+            {options.map((opt, idx) => (
+              <React.Fragment key={idx}>
+                <Grid item xs={8}>
+                  <TextField
+                    fullWidth
+                    label={`Option ${idx + 1}`}
+                    value={opt.option_text}
+                    onChange={(e) => handleOptionChange(idx, 'option_text', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Checkbox checked={opt.is_correct} onChange={(e) => handleOptionChange(idx, 'is_correct', e.target.checked)} />
+                  <Typography>Correct</Typography>
+                </Grid>
+                <Grid item xs={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                  {options.length > 1 && (
+                    <IconButton onClick={() => handleRemoveOption(idx)}>
+                      <MinusCircleOutlined />
+                    </IconButton>
+                  )}
+                </Grid>
+              </React.Fragment>
+            ))}
+            <Grid item xs={12}>
+              <Button startIcon={<PlusOutlined />} onClick={handleAddOption}>
+                Add Option
+              </Button>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleEditExerciseClose}>Cancel</Button>
           <Button variant="contained" onClick={handleUpdateExercise}>
-            Update Exercise
+            Update
           </Button>
         </DialogActions>
       </Dialog>

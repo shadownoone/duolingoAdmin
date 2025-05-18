@@ -174,7 +174,7 @@ export default function Lesson() {
     <div>
       <Container sx={{ mt: 4 }}>
         <Button variant="contained" startIcon={<PlusOutlined />} onClick={handleAddLessonOpen} sx={{ mb: 2 }}>
-          Add New Course
+          Add New Lesson
         </Button>
 
         <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
