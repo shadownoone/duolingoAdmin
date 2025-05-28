@@ -11,9 +11,10 @@ export const getExerciseByLesson = async (lessonId) => {
   }
 };
 
-export const createExercise = async (exercise) => {
+export const createExercise = async (payload) => {
   try {
-    const res = await axiosClients.post('/exercises/create', exercise);
+    const isForm = payload instanceof FormData;
+    const res = await axiosClients.post('/exercises/create', payload, isForm ? { headers: { 'Content-Type': 'multipart/form-data' } } : {});
     return res.data;
   } catch (error) {
     console.error('Error creating exercise:', error);
@@ -21,9 +22,14 @@ export const createExercise = async (exercise) => {
   }
 };
 
-export const updateExercise = async (exerciseId, exercise) => {
+export const updateExercise = async (exerciseId, payload) => {
   try {
-    const res = await axiosClients.put(`/exercises/update/${exerciseId}`, exercise);
+    const isForm = payload instanceof FormData;
+    const res = await axiosClients.put(
+      `/exercises/update/${exerciseId}`,
+      payload,
+      isForm ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
+    );
     return res.data;
   } catch (error) {
     console.error('Error updating exercise:', error);

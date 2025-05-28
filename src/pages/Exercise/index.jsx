@@ -52,6 +52,10 @@ export default function Exercise() {
   const [answer, setAnswer] = useState('');
   const [hints, setHints] = useState('');
   const [options, setOptions] = useState([{ option_text: '', is_correct: false }]);
+  const [existingMediaUrl, setExistingMediaUrl] = useState(null);
+
+  const LISTENING_TYPE_ID = 4;
+  const [mediaFile, setMediaFile] = useState(null);
 
   const fetchExercises = async () => {
     setLoading(true);
@@ -121,6 +125,7 @@ export default function Exercise() {
     setAnswer('');
     setHints('');
     setOptions([{ option_text: '', is_correct: false }]);
+    setMediaFile(null);
   };
   const handleEditExerciseOpen = (exercise) => {
     setExerciseIdToEdit(exercise.exercise_id);
@@ -134,6 +139,8 @@ export default function Exercise() {
         is_correct: o.is_correct
       }))
     );
+    setExistingMediaUrl(exercise.audio_url || null);
+    setMediaFile(null);
     setOpenEditDialog(true);
   };
 
@@ -142,19 +149,28 @@ export default function Exercise() {
     setExerciseName('');
     setExerciseDescription('');
     setExerciseType('');
+    setExistingMediaUrl(null);
+    setMediaFile(null);
   };
 
   const handleAddExercise = async () => {
     try {
-      const payload = {
-        lesson_id: Number(lessonId),
-        exercise_type_id: Number(exerciseType),
-        question_content: questionContent,
-        answer,
-        hints,
-        options
-      };
-      await createExercise(payload);
+      // 1) Build FormData
+      const form = new FormData();
+      form.append('lesson_id', lessonId);
+      form.append('exercise_type_id', exerciseType);
+      form.append('question_content', questionContent);
+      form.append('answer', answer);
+      form.append('hints', hints);
+      form.append('options', JSON.stringify(options));
+      if (mediaFile) {
+        form.append('media', mediaFile);
+      }
+
+      // 2) Gọi service với FormData
+      await createExercise(form);
+
+      // 3) Reload danh sách & đóng dialog
       await fetchExercises();
       handleAddExerciseClose();
     } catch (err) {
@@ -164,22 +180,21 @@ export default function Exercise() {
 
   const handleUpdateExercise = async () => {
     try {
-      const payload = {
-        lesson_id: Number(lessonId),
-        exercise_type_id: Number(exerciseType),
-        question_content: questionContent,
-        answer,
-        hints,
-        options
-      };
-      const res = await updateExercise(exerciseIdToEdit, payload);
-      const updated = res.data;
+      const form = new FormData();
+      form.append('lesson_id', lessonId);
+      form.append('exercise_type_id', exerciseType);
+      form.append('question_content', questionContent);
+      form.append('answer', answer);
+      form.append('hints', hints);
+      form.append('options', JSON.stringify(options));
+      if (mediaFile) form.append('media', mediaFile);
 
-      // Update ngay trong local state
+      const res = await updateExercise(exerciseIdToEdit, form);
+      const updated = res.data;
       setExercises((prev) => prev.map((ex) => (ex.exercise_id === exerciseIdToEdit ? updated : ex)));
       handleEditExerciseClose();
     } catch (err) {
-      console.error('Failed to update exercise', err.response?.data || err);
+      console.error('Failed to update exercise', err);
     }
   };
 
@@ -315,6 +330,15 @@ export default function Exercise() {
               <TextField fullWidth label="Hints" value={hints} onChange={(e) => setHints(e.target.value)} />
             </Grid>
 
+            {Number(exerciseType) === LISTENING_TYPE_ID && (
+              <Grid item xs={12}>
+                <Button variant="outlined" component="label" fullWidth sx={{ textTransform: 'none' }}>
+                  {mediaFile?.name || 'Upload Audio/Video'}
+                  <input type="file" accept="audio/*,video/*" hidden onChange={(e) => setMediaFile(e.target.files[0])} />
+                </Button>
+              </Grid>
+            )}
+
             <Grid item xs={12}>
               <Typography variant="subtitle1">Options</Typography>
             </Grid>
@@ -396,6 +420,23 @@ export default function Exercise() {
             <Grid item xs={12}>
               <Typography variant="subtitle1">Options</Typography>
             </Grid>
+
+            {Number(exerciseType) === LISTENING_TYPE_ID && (
+              <>
+                {existingMediaUrl && !mediaFile && (
+                  <Grid item xs={12}>
+                    <audio controls style={{ width: '100%' }} src={existingMediaUrl} />
+                  </Grid>
+                )}
+                <Grid item xs={12}>
+                  <Button variant="outlined" component="label" fullWidth>
+                    {mediaFile?.name || 'Upload New Audio/Video'}
+                    <input type="file" accept="audio/*,video/*" hidden onChange={(e) => setMediaFile(e.target.files[0])} />
+                  </Button>
+                </Grid>
+              </>
+            )}
+
             {options.map((opt, idx) => (
               <React.Fragment key={idx}>
                 <Grid item xs={8}>
