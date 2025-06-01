@@ -16,8 +16,8 @@ import Box from '@mui/material/Box';
 // project import
 import MainCard from '@/components/MainCard';
 import AnalyticEcommerce from '@/components/cards/statistics/AnalyticEcommerce';
-// import MonthlyBarChart from './TopViews';
-// import ReportAreaChart from './TopRichs';
+import MonthlyBarChart from './TopViews';
+import ReportAreaChart from './TopRichs';
 import UniqueVisitorCard from './UniqueVisitorCard';
 import SaleReportCard from './SaleReportCard';
 import OrdersTable from './OrdersTable';
@@ -35,6 +35,7 @@ import { useEffect, useState } from 'react';
 // import { getStatistical } from '@/service/languageService/index';
 import { totalUser } from '@/service/userService';
 import { getPayments } from '@/service/paymentService';
+import { getLanguage } from '@/service/languageService';
 
 // avatar style
 const avatarSX = {
@@ -61,8 +62,8 @@ export default function DashboardDefault() {
     percentage: 0,
     extra: 0
   });
-  const [manga, totalMangas] = useState({
-    totalViews: 0,
+  const [language, setLanguage] = useState({
+    count: 0,
     percentage: 0,
     extra: 0
   });
@@ -79,34 +80,25 @@ export default function DashboardDefault() {
     extra: 0
   });
 
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const data = await getStatistical(); // Gọi API
+  useEffect(() => {
+    const fetchTotalLanguages = async () => {
+      try {
+        const response = await getLanguage();
+        console.log(response.data.meta.count); // VD là 9
 
-  //       console.log('Raw API Data:', data); // Log dữ liệu trả về từ API
+        // Cập nhật đúng object có key “count”
+        setLanguage({
+          count: response.data.meta.count || 0,
+          percentage: 70.5,
+          extra: 8900
+        });
+      } catch (error) {
+        console.error('Error fetching total languages:', error);
+      }
+    };
 
-  //       // Ghi log để kiểm tra từng giá trị cụ thể
-  //       console.log('Total Views:', data.data.totalViews);
-  //       console.log('Total Mangas:', data.data.totalMangas);
-
-  //       totalViews({
-  //         totalViews: data.data.totalViews || 0,
-  //         percentage: 59.3, // Giá trị ví dụ, bạn có thể tính toán từ backend
-  //         extra: 35000 // Giá trị ví dụ, bạn có thể lấy từ backend nếu có
-  //       });
-
-  //       totalMangas({
-  //         totalMangas: data.data.totalMangas || 0,
-  //         percentage: 60, // Giá trị ví dụ, bạn có thể tính toán từ backend
-  //         extra: 35000 // Giá trị ví dụ, bạn có thể lấy từ backend nếu có
-  //       });
-  //     } catch (error) {
-  //       console.error('Error fetching statistics:', error);
-  //     }
-  //   };
-  //   fetchData();
-  // }, []);
+    fetchTotalLanguages();
+  }, []);
 
   useEffect(() => {
     const fetchTotalUsers = async () => {
@@ -114,8 +106,8 @@ export default function DashboardDefault() {
         const response = await totalUser();
         setTotalUsers({
           count: response.data.totalUsers || 0,
-          percentage: 70.5, // Giá trị ví dụ, có thể lấy từ backend
-          extra: 8900 // Giá trị ví dụ, có thể lấy từ backend
+          percentage: 70.5,
+          extra: 8900
         });
       } catch (error) {
         console.error('Error fetching total users:', error);
@@ -129,11 +121,10 @@ export default function DashboardDefault() {
     const fetchTotalPayments = async () => {
       try {
         const response = await getPayments();
-        console.log('Total Mangas:', response.data.totalPayments);
         setTotalSale({
           count: response.data.totalPayments || 0,
-          percentage: 70.5, // Giá trị ví dụ, có thể lấy từ backend
-          extra: 8900 // Giá trị ví dụ, có thể lấy từ backend
+          percentage: 70.5,
+          extra: 8900
         });
       } catch (error) {
         console.error('Error fetching total users:', error);
@@ -167,10 +158,10 @@ export default function DashboardDefault() {
       </Grid>
       <Grid item xs={12} sm={6} md={4} lg={3}>
         <AnalyticEcommerce
-          title="Total Mangas"
-          count={manga.totalMangas}
-          percentage={manga.percentage}
-          extra={manga.extra.toLocaleString()}
+          title="Total Languages"
+          count={language.count.toLocaleString()} // <-- SỬA thành language.count
+          percentage={language.percentage}
+          extra={language.extra.toLocaleString()}
         />
       </Grid>
       <Grid item xs={12} sm={6} md={4} lg={3}>
@@ -186,13 +177,13 @@ export default function DashboardDefault() {
       <Grid item xs={12} md={5} lg={4}>
         <Grid container alignItems="center" justifyContent="space-between">
           <Grid item>
-            <Typography variant="h5"> Top Manga Đọc Nhiều</Typography>
+            <Typography variant="h5"> SUPER DUOLINGO</Typography>
           </Grid>
           <Grid item />
         </Grid>
         <MainCard sx={{ mt: 2 }} content={false}>
           <Box sx={{ p: 3, pb: 0 }}></Box>
-          {/* <MonthlyBarChart /> */}
+          <MonthlyBarChart />
         </MainCard>
       </Grid>
 
@@ -205,7 +196,7 @@ export default function DashboardDefault() {
           <Grid item />
         </Grid>
         <MainCard sx={{ mt: 2 }} content={false}>
-          <OrdersTable />
+          {/* <OrdersTable /> */}
         </MainCard>
       </Grid>
       <Grid item xs={12} md={5} lg={4}>
@@ -216,7 +207,7 @@ export default function DashboardDefault() {
           <Grid item />
         </Grid>
         <MainCard sx={{ mt: 2 }} content={false}>
-          {/* <ReportAreaChart /> */}
+          <ReportAreaChart />
         </MainCard>
       </Grid>
 
@@ -231,7 +222,7 @@ export default function DashboardDefault() {
           </Grid>
           <Grid item />
         </Grid>
-        <MainCard sx={{ mt: 2 }} content={false}>
+        {/* <MainCard sx={{ mt: 2 }} content={false}>
           <List
             component="nav"
             sx={{
@@ -299,8 +290,8 @@ export default function DashboardDefault() {
               </ListItemSecondaryAction>
             </ListItemButton>
           </List>
-        </MainCard>
-        <MainCard sx={{ mt: 2 }}>
+        </MainCard> */}
+        {/* <MainCard sx={{ mt: 2 }}>
           <Stack spacing={3}>
             <Grid container justifyContent="space-between" alignItems="center">
               <Grid item>
@@ -326,7 +317,7 @@ export default function DashboardDefault() {
               Need Help?
             </Button>
           </Stack>
-        </MainCard>
+        </MainCard> */}
       </Grid>
     </Grid>
   );

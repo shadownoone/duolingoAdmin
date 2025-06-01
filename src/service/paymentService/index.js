@@ -5,3 +5,9 @@ export const getPayments = async () => {
     return res.data;
   });
 };
+
+export const getUserTotalPayments = async () => {
+  return await axiosClients.get('/payments/userPay').then((res) => {
+    return res.data;
+  });
+};

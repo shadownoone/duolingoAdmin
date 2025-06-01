@@ -1,7 +1,7 @@
 import { axiosClients } from '@/api/axiosClients';
 
 export const getAllUser = async () => {
-  return await axiosClients.get('/users/all').then((res) => {
+  return await axiosClients.get('/users/total').then((res) => {
     return res.data;
   });
 };

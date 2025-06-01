@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Typography,
   Button,
   Container,
   Table,
@@ -12,54 +11,58 @@ import {
   Paper,
   IconButton,
   Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   TextField,
   Grid,
   Tooltip,
-  Avatar,
   TablePagination
 } from '@mui/material';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getAllUser } from '@/service/userService';
 
 export default function User() {
+  // allUsers: giữ toàn bộ dữ liệu fetch về ban đầu
+  const [allUsers, setAllUsers] = useState([]);
+  // listUsers: dữ liệu đang hiển thị (có thể đã bị filter)
   const [listUsers, setListUsers] = useState([]);
   const [open, setOpen] = useState(false);
-  const [selectedManga, setSelectedManga] = useState(null);
-  const [image, setImage] = useState(null);
-  const [page, setPage] = useState(0); // Trạng thái cho trang hiện tại
-  const [rowsPerPage, setRowsPerPage] = useState(5); // Số lượng sản phẩm trên mỗi trang
 
-  const handleOpen = (manga) => {
-    setSelectedManga(manga);
-    setImage(manga?.image || null);
-    setOpen(true);
-  };
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedManga(null);
-    setImage(null);
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImage(event.target.result); // hiển thị hình ảnh tạm thời
-      };
-      reader.readAsDataURL(file);
+  // Hàm lọc (filter) dựa trên mảng nguồn (data) và từ khóa (term)
+  const applyFilter = (data, term) => {
+    if (!term.trim()) {
+      // Nếu chuỗi term rỗng hoặc toàn khoảng trắng, trả về toàn bộ
+      setListUsers(data);
+    } else {
+      // Lọc ra những user có username chứa term
+      const filtered = data.filter((user) => user.username.toLowerCase().includes(term.toLowerCase()));
+      setListUsers(filtered);
     }
+  };
+
+  // Khi user gõ vào ô tìm kiếm
+  const handleSearch = (event) => {
+    const term = event.target.value;
+    setSearchTerm(term);
+    // Lọc từ mảng allUsers, chứ không phải từ listUsers (đã filter trước đó)
+    applyFilter(allUsers, term);
+    setPage(0);
   };
 
   useEffect(() => {
     const fetchAllUser = async () => {
-      const data = await getAllUser();
-
-      setListUsers(data.data.data);
+      try {
+        const response = await getAllUser();
+        // Giả sử API trả về: response.data.users = [ { user_id, username, email, is_vip, ... }, ... ]
+        const users = response.data.users || [];
+        // Lưu vào both allUsers và listUsers (ban đầu chưa filter)
+        setAllUsers(users);
+        setListUsers(users);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
     fetchAllUser();
@@ -70,10 +73,20 @@ export default function User() {
     setPage(newPage);
   };
 
-  // Xử lý thay đổi số lượng hàng trên mỗi trang
+  // Xử lý thay đổi số dòng mỗi trang
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  // Tạm placeholder cho hàm mở dialog (thêm/sửa)
+  const handleOpen = (user) => {
+    // Nếu user = null => thêm mới, ngược lại: chỉnh sửa user
+    setOpen(true);
+    // ... có thể set lại một state editUser nếu muốn hiện thông tin lên form
+  };
+  const handleClose = () => {
+    setOpen(false);
   };
 
   return (
@@ -83,6 +96,12 @@ export default function User() {
           Add New User
         </Button>
 
+        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+          <Grid item xs={8}>
+            <TextField variant="outlined" placeholder="Search user..." value={searchTerm} onChange={handleSearch} sx={{ width: '300px' }} />
+          </Grid>
+        </Grid>
+
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -90,7 +109,6 @@ export default function User() {
                 <TableCell>
                   <b>No.</b>
                 </TableCell>
-
                 <TableCell>
                   <b>User Name</b>
                 </TableCell>
@@ -98,10 +116,7 @@ export default function User() {
                   <b>Email</b>
                 </TableCell>
                 <TableCell>
-                  <b>Phone</b>
-                </TableCell>
-                <TableCell>
-                  <b>Address</b>
+                  <b>VIP</b>
                 </TableCell>
                 <TableCell>
                   <b>Actions</b>
@@ -109,15 +124,12 @@ export default function User() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {/* Dữ liệu Manga */}
               {listUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user, index) => (
                 <TableRow key={user.user_id}>
                   <TableCell>{page * rowsPerPage + index + 1}</TableCell>
-
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
-                  <TableCell>{user.address}</TableCell>
+                  <TableCell>{user.is_vip ? 'Yes' : 'No'}</TableCell>
                   <TableCell>
                     <Tooltip title="Edit">
                       <IconButton onClick={() => handleOpen(user)}>
@@ -136,7 +148,6 @@ export default function User() {
           </Table>
         </TableContainer>
 
-        {/* Thêm phân trang */}
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -147,37 +158,8 @@ export default function User() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
 
-        {/* Dialog Form thêm/sửa */}
         <Dialog open={open} onClose={handleClose}>
-          <DialogTitle>{selectedManga ? 'Edit Manga' : 'Add New Manga'}</DialogTitle>
-          <DialogContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Title" defaultValue={selectedManga?.title || ''} variant="outlined" />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Genre" defaultValue={selectedManga?.genre || ''} variant="outlined" />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Author" defaultValue={selectedManga?.author || ''} variant="outlined" />
-              </Grid>
-
-              {/* Trường chọn hình ảnh */}
-              <Grid item xs={12}>
-                <Typography variant="body1" gutterBottom>
-                  Select Manga Image:
-                </Typography>
-                <input type="file" accept="image/*" onChange={handleImageChange} />
-                {image && <Avatar alt="Selected Manga" src={image} sx={{ width: 100, height: 100, mt: 2 }} />}
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button variant="contained" onClick={handleClose}>
-              {selectedManga ? 'Save Changes' : 'Add Manga'}
-            </Button>
-          </DialogActions>
+          {/* Nội dung form thêm/sửa user đặt ở đây */}
         </Dialog>
       </Container>
     </div>

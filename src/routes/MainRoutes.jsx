@@ -16,6 +16,7 @@ const Profile = Loadable(lazy(() => import('@/pages/Profile/profile')));
 const User = Loadable(lazy(() => import('@/pages/User/user')));
 const Lesson = Loadable(lazy(() => import('@/pages/Lesson/index')));
 const Exercise = Loadable(lazy(() => import('@/pages/Exercise/index')));
+const Badge = Loadable(lazy(() => import('@/pages/Badge/index')));
 
 // render - sample page
 const SamplePage = Loadable(lazy(() => import('@/pages/extra-pages/sample-page')));
@@ -90,6 +91,11 @@ const MainRoutes = {
     {
       path: 'exercisetype',
       element: <ExerciseType />
+    },
+
+    {
+      path: 'badge',
+      element: <Badge />
     }
   ]
 };

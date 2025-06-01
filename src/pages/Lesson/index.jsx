@@ -20,35 +20,41 @@ import {
   Button
 } from '@mui/material';
 import { EyeOutlined, DeleteOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons';
-import { deleteLesson, getLessonByCourse, updateLesson } from '@/service/lessonService';
+import { toast } from 'react-toastify'; // <-- import toast
+
+import { getLessonByCourse, createLesson, deleteLesson, updateLesson } from '@/service/lessonService';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createLesson } from '@/service/lessonService'; // Dịch vụ để gọi API tạo bài học
 
 export default function Lesson() {
   const navigate = useNavigate();
   const { courseId } = useParams();
   const [lessons, setLessons] = useState([]);
+  const [filteredLessons, setFilteredLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Thêm trạng thái cho dialog
+  // Trạng thái dialog và form
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [lessonName, setLessonName] = useState('');
   const [lessonDescription, setLessonDescription] = useState('');
-  const [lessonType, setLessonType] = useState('book'); // Đặt mặc định là "book"
-
+  const [lessonType, setLessonType] = useState('book'); // mặc định "book"
   const [lessonIdToEdit, setLessonIdToEdit] = useState(null);
 
   useEffect(() => {
     const fetchLessons = async () => {
       try {
+        setLoading(true);
         const res = await getLessonByCourse(courseId);
-        setLessons(res.data.Lessons || []);
+        // Giả sử API trả về res.data.Lessons = [...]
+        const data = Array.isArray(res.data.Lessons) ? res.data.Lessons : [];
+        setLessons(data);
+        setFilteredLessons(data);
       } catch (err) {
         console.error('Error fetching lessons:', err);
+        toast.error('Có lỗi khi tải danh sách bài học');
       } finally {
         setLoading(false);
       }
@@ -56,70 +62,127 @@ export default function Lesson() {
     fetchLessons();
   }, [courseId]);
 
+  // Phân trang
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
-
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
+  // Search
   const handleSearch = (event) => {
     const term = event.target.value.toLowerCase();
     setSearchTerm(term);
-
-    const filteredLessons = lessons.filter((lesson) => lesson.lesson_title.toLowerCase().includes(term));
-
-    setLessons(filteredLessons);
+    if (!term.trim()) {
+      setFilteredLessons(lessons);
+    } else {
+      const filtered = lessons.filter((lesson) => lesson.lesson_title.toLowerCase().includes(term));
+      setFilteredLessons(filtered);
+    }
+    setPage(0);
   };
 
+  // Điều hướng đến trang Exercise cho lesson
   const handleView = (lesson_id) => {
-    console.log('lesson_id', lesson_id);
     navigate(`/exercise/${lesson_id}`);
   };
 
+  // Xóa bài học
   const handleDeleteLesson = async (lessonId) => {
+    const lessonToDelete = lessons.find((l) => l.lesson_id === lessonId);
+    if (!lessonToDelete) return;
+
+    if (!window.confirm(`Bạn có chắc muốn xóa bài học "${lessonToDelete.lesson_title}" không?`)) {
+      return;
+    }
+
     try {
       await deleteLesson(lessonId);
-      setLessons(lessons.filter((lesson) => lesson.lesson_id !== lessonId));
+      // Giảm state lessons và filteredLessons
+      const newList = lessons.filter((l) => l.lesson_id !== lessonId);
+      setLessons(newList);
+      setFilteredLessons((prev) => prev.filter((l) => l.lesson_id !== lessonId));
+
+      toast.success('Xóa bài học thành công');
     } catch (error) {
       console.error('Error deleting lesson:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Đã có lỗi khi xóa bài học');
+      }
     }
   };
 
-  // Mở Dialog để thêm bài học
+  // Mở/Đóng dialog thêm bài học
   const handleAddLessonOpen = () => {
-    setOpenAddDialog(true);
-  };
-
-  // Đóng Dialog
-  const handleAddLessonClose = () => {
-    setOpenAddDialog(false);
     setLessonName('');
     setLessonDescription('');
-    setLessonType('book'); // Reset type khi đóng
+    setLessonType('book');
+    setOpenAddDialog(true);
   };
-
-  const handleEditLessonOpen = (lesson) => {
-    setLessonIdToEdit(lesson.lesson_id); // Lưu ID bài học cần sửa
-    setLessonName(lesson.lesson_title); // Set giá trị ban đầu vào các trường
-    setLessonDescription(lesson.description);
-    setLessonType(lesson.type); // Đặt type nếu cần
-    setOpenEditDialog(true); // Mở dialog
-  };
-
-  const handleEditLessonClose = () => {
-    setOpenEditDialog(false);
+  const handleAddLessonClose = () => {
+    setOpenAddDialog(false);
     setLessonName('');
     setLessonDescription('');
     setLessonType('book');
   };
 
+  // Mở/Đóng dialog chỉnh sửa bài học
+  const handleEditLessonOpen = (lesson) => {
+    setLessonIdToEdit(lesson.lesson_id);
+    setLessonName(lesson.lesson_title);
+    setLessonDescription(lesson.content); // Giả sử API field là `content`
+    setLessonType(lesson.type);
+    setOpenEditDialog(true);
+  };
+  const handleEditLessonClose = () => {
+    setOpenEditDialog(false);
+    setLessonIdToEdit(null);
+    setLessonName('');
+    setLessonDescription('');
+    setLessonType('book');
+  };
+
+  // Thêm bài học mới
+  const handleAddLesson = async () => {
+    if (!lessonName.trim() || !lessonDescription.trim() || !lessonType.trim()) {
+      toast.warning('Các trường bắt buộc không được để trống');
+      return;
+    }
+
+    const newLesson = {
+      lesson_title: lessonName,
+      content: lessonDescription,
+      type: lessonType,
+      lesson_order: lessons.length + 1,
+      course_id: parseInt(courseId, 10)
+    };
+
+    try {
+      const res = await createLesson(newLesson);
+      // Giả sử API trả về res.data = đối tượng lesson vừa tạo
+      setLessons((prev) => [...prev, res.data]);
+      setFilteredLessons((prev) => [...prev, res.data]);
+
+      toast.success('Thêm bài học thành công');
+      handleAddLessonClose();
+    } catch (error) {
+      console.error('Error creating lesson:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Đã có lỗi khi tạo bài học');
+      }
+    }
+  };
+
+  // Cập nhật bài học
   const handleUpdateLesson = async () => {
-    // Kiểm tra các trường cần thiết
-    if (!lessonName || !lessonDescription || !lessonType) {
-      console.error('Missing required fields');
+    if (!lessonName.trim() || !lessonDescription.trim() || !lessonType.trim()) {
+      toast.warning('Các trường bắt buộc không được để trống');
       return;
     }
 
@@ -127,133 +190,112 @@ export default function Lesson() {
       lesson_title: lessonName,
       content: lessonDescription,
       type: lessonType,
-      lesson_order: lessons.length + 1, // Hoặc tính toán lại nếu cần
-      course_id: parseInt(courseId) // Đảm bảo ID khóa học hợp lệ
+      lesson_order: lessons.length + 1,
+      course_id: parseInt(courseId, 10)
     };
 
     try {
-      // Gọi API để cập nhật bài học
       const res = await updateLesson(lessonIdToEdit, updatedLesson);
-      // Cập nhật state với dữ liệu mới
-      setLessons((prevLessons) => prevLessons.map((lesson) => (lesson.lesson_id === lessonIdToEdit ? res.data : lesson)));
-      handleEditLessonClose(); // Đóng dialog sau khi cập nhật
+      // Giả sử API trả về res.data = đối tượng lesson đã cập nhật
+      const updated = res.data;
+      setLessons((prev) => prev.map((l) => (l.lesson_id === lessonIdToEdit ? updated : l)));
+      setFilteredLessons((prev) => prev.map((l) => (l.lesson_id === lessonIdToEdit ? updated : l)));
+
+      toast.success('Cập nhật bài học thành công');
+      handleEditLessonClose();
     } catch (error) {
       console.error('Error updating lesson:', error);
-    }
-  };
-
-  const handleAddLesson = async () => {
-    // Kiểm tra xem các trường cần thiết đã được nhập đầy đủ chưa
-    if (!lessonName || !lessonDescription || !lessonType) {
-      console.error('Missing required fields');
-      return; // Không gửi yêu cầu nếu thiếu trường bắt buộc
-    }
-
-    // Tạo đối tượng bài học mới
-    const newLesson = {
-      lesson_title: lessonName, // Thay lesson_name thành lesson_title
-      content: lessonDescription,
-      type: lessonType,
-      lesson_order: lessons.length + 1, // Tạo lesson_order tự động
-      course_id: parseInt(courseId) // Đảm bảo rằng courseId là số nguyên
-    };
-
-    console.log('newLesson', newLesson); // In ra để kiểm tra cấu trúc của đối tượng
-
-    try {
-      // Gọi API tạo bài học
-      const res = await createLesson(newLesson);
-      setLessons((prevLessons) => [...prevLessons, res.data]);
-      handleAddLessonClose();
-    } catch (error) {
-      console.error('Error creating lesson:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Đã có lỗi khi cập nhật bài học');
+      }
     }
   };
 
   return (
-    <div>
-      <Container sx={{ mt: 4 }}>
-        <Button variant="contained" startIcon={<PlusOutlined />} onClick={handleAddLessonOpen} sx={{ mb: 2 }}>
-          Add New Lesson
-        </Button>
+    <Container sx={{ mt: 4 }}>
+      <Button variant="contained" startIcon={<PlusOutlined />} onClick={handleAddLessonOpen} sx={{ mb: 2 }}>
+        Add New Lesson
+      </Button>
 
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={8}>
-            <TextField variant="outlined" placeholder="Search Lesson" value={searchTerm} onChange={handleSearch} sx={{ width: '300px' }} />
-          </Grid>
+      {/* Search bar */}
+      <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+        <Grid item xs={8}>
+          <TextField variant="outlined" placeholder="Search Lesson" value={searchTerm} onChange={handleSearch} sx={{ width: '300px' }} />
         </Grid>
+      </Grid>
 
-        {/* Table for displaying lessons */}
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
+      {/* Bảng danh sách bài học */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>
+                <b>No.</b>
+              </TableCell>
+              <TableCell>
+                <b>Lesson Name</b>
+              </TableCell>
+              <TableCell>
+                <b>Actions</b>
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
               <TableRow>
-                <TableCell>
-                  <b>No.</b>
-                </TableCell>
-                <TableCell>
-                  <b>Lesson Name</b>
-                </TableCell>
-                <TableCell>
-                  <b>Actions</b>
+                <TableCell colSpan={3} align="center">
+                  Loading...
                 </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={3} align="center">
-                    Loading...
+            ) : filteredLessons.length > 0 ? (
+              filteredLessons.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((lesson, index) => (
+                <TableRow key={lesson.lesson_id}>
+                  <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                  <TableCell>{lesson.lesson_title}</TableCell>
+                  <TableCell>
+                    <Tooltip title="View">
+                      <IconButton onClick={() => handleView(lesson.lesson_id)}>
+                        <EyeOutlined />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Edit">
+                      <IconButton onClick={() => handleEditLessonOpen(lesson)}>
+                        <EditOutlined />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton color="error" onClick={() => handleDeleteLesson(lesson.lesson_id)}>
+                        <DeleteOutlined />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
-              ) : lessons.length > 0 ? (
-                lessons.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((lesson, index) => (
-                  <TableRow key={lesson.lesson_id}>
-                    <TableCell>{page * rowsPerPage + index + 1}</TableCell>
-                    <TableCell>{lesson.lesson_title}</TableCell>
-                    <TableCell>
-                      <Tooltip title="View">
-                        <IconButton onClick={() => handleView(lesson.lesson_id)}>
-                          <EyeOutlined fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton onClick={() => handleEditLessonOpen(lesson)}>
-                          <EditOutlined />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton color="error" onClick={() => handleDeleteLesson(lesson.lesson_id)}>
-                          <DeleteOutlined />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} align="center">
-                    No lessons found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={3} align="center">
+                  No lessons found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-        {/* Pagination */}
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={lessons.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Container>
+      {/* Phân trang */}
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={filteredLessons.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
 
-      {/* Dialog for adding new lesson */}
+      {/* Dialog Thêm bài học */}
       <Dialog open={openAddDialog} onClose={handleAddLessonClose} fullWidth maxWidth="md">
         <DialogTitle>Add New Lesson</DialogTitle>
         <DialogContent>
@@ -290,6 +332,7 @@ export default function Lesson() {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog Chỉnh sửa bài học */}
       <Dialog open={openEditDialog} onClose={handleEditLessonClose} fullWidth maxWidth="md">
         <DialogTitle>Edit Lesson</DialogTitle>
         <DialogContent>
@@ -325,6 +368,6 @@ export default function Lesson() {
           </Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </Container>
   );
 }
